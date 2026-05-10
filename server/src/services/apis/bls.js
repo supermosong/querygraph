@@ -38,7 +38,11 @@ async function fetchBLSData(startYear, endYear) {
     throw new Error(`BLS API error: ${msg}`);
   }
 
-  const rawData = json.Results.series[0].data;
+  const series = json.Results?.series?.[0];
+  if (!series || !series.data) {
+    throw new Error('BLS returned an unexpected response format. Please try again.');
+  }
+  const rawData = series.data;
 
   if (!rawData || rawData.length === 0) {
     throw new Error('BLS returned no data for this date range.');

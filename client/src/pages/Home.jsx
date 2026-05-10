@@ -7,7 +7,7 @@ import useGraphData from '../hooks/useGraphData';
 const EXAMPLE_QUERIES = [
   'US unemployment rate 2020-2024',
   'inflation last 5 years',
-  'GDP 2015-2023',
+  'US inflation rate 2018-2023',
 ];
 
 // Main page — hero text, search bar, example chips, and the graph
