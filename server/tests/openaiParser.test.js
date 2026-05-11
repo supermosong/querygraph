@@ -26,43 +26,44 @@ beforeEach(() => {
 describe('parseQueryWithOpenAI', () => {
   test('returns structured result for "unemployment rate 2020 2024"', async () => {
     mockOpenAIResponse({
-      series_id: 'UNRATE',
-      title: 'US Unemployment Rate (2020–2024)',
-      yLabel: 'Unemployment Rate (%)',
+      api: 'BLS',
+      seriesId: 'LNS14000000',
       startYear: 2020,
       endYear: 2024,
+      title: 'US Unemployment Rate',
+      unit: 'Unemployment Rate (%)',
     });
 
     const result = await parseQueryWithOpenAI('unemployment rate 2020 2024');
-    expect(result.series_id).toBe('UNRATE');
+    expect(result.api).toBe('BLS');
+    expect(result.seriesId).toBeTruthy();
     expect(result.startYear).toBe(2020);
     expect(result.endYear).toBe(2024);
-    expect(result.title).toContain('Unemployment');
-    expect(result.yLabel).toBeTruthy();
+    expect(result.title).toBeTruthy();
+    expect(result.unit).toBeTruthy();
   });
 
-  test('returns structured result for vague query "US job market"', async () => {
+  test('returns null dates when no date range is mentioned', async () => {
     mockOpenAIResponse({
-      series_id: 'UNRATE',
-      title: 'US Unemployment Rate (2020–2025)',
-      yLabel: 'Unemployment Rate (%)',
-      startYear: 2020,
-      endYear: 2025,
+      api: 'FRED',
+      seriesId: 'CPIAUCSL',
+      startYear: null,
+      endYear: null,
+      title: 'US CPI Inflation',
+      unit: 'Index 1982-84=100',
     });
 
-    const result = await parseQueryWithOpenAI('US job market');
-    expect(result.series_id).toBe('UNRATE');
-    expect(result.error).toBeUndefined();
+    const result = await parseQueryWithOpenAI('inflation');
+    expect(result.startYear).toBeNull();
+    expect(result.endYear).toBeNull();
   });
 
   test('returns error for completely unrecognizable query', async () => {
-    mockOpenAIResponse({
-      error: 'Query not recognized. Try topics like unemployment, inflation, GDP, or interest rates.',
-    });
+    mockOpenAIResponse({ error: 'unrecognized query' });
 
     const result = await parseQueryWithOpenAI('purple elephant dancing');
     expect(result.error).toBeTruthy();
-    expect(result.series_id).toBeUndefined();
+    expect(result.seriesId).toBeUndefined();
   });
 
   test('throws if OpenAI returns malformed JSON', async () => {

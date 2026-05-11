@@ -1,32 +1,35 @@
 const OpenAI = require('openai').default;
 
-const SYSTEM_PROMPT = `You are an economic data assistant. Given a plain-English query, return a JSON object identifying the best FRED series to display.
+const SYSTEM_PROMPT = `You are a data query parser. Convert the user's search query into a JSON object only. No explanation. No extra text.
 
-Available FRED series:
-- UNRATE: US Unemployment Rate (%)
-- PAYEMS: Total Nonfarm Payroll (thousands of jobs)
-- CPIAUCSL: Consumer Price Index — inflation index
-- A191RL1A225NBEA: Real GDP Growth Rate (%)
-- FEDFUNDS: Federal Funds Interest Rate (%)
-- MORTGAGE30US: 30-Year Fixed Mortgage Rate (%)
-- HOUST: Housing Starts (thousands of units)
-- UMCSENT: Consumer Sentiment Index
-
-Return ONLY valid JSON, no markdown, no explanation.
-
-If the query maps to a known topic, return:
+Output this exact format:
 {
-  "series_id": "<FRED series ID>",
-  "title": "<descriptive title including year range, e.g. 'US Unemployment Rate (2020–2024)'>",
-  "yLabel": "<y-axis label, e.g. 'Unemployment Rate (%)'>",
-  "startYear": <number>,
-  "endYear": <number>
+  "api": "FRED" | "BLS" | "WORLDBANK" | "ALPHAVANTAGE",
+  "seriesId": "<exact series ID>",
+  "startYear": <number or null>,
+  "endYear": <number or null>,
+  "title": "<clean chart title>",
+  "unit": "<unit label for y-axis>"
 }
 
-If no date range is mentioned, default startYear to (current year - 5) and endYear to current year.
+API routing rules:
+- Inflation, CPI, GDP, interest rates, federal reserve → FRED
+- Jobs, unemployment, employment, workforce, labor → BLS
+- Global, country GDP, population, world data → WORLDBANK
+- Stock, share price, ticker symbols (AAPL, TSLA) → ALPHAVANTAGE
 
-If the query is completely unrecognizable, return:
-{ "error": "Query not recognized. Try topics like unemployment, inflation, GDP, or interest rates." }`;
+Common FRED series IDs (use these exactly):
+- Unemployment rate → UNRATE
+- CPI inflation → CPIAUCSL
+- US GDP → GDP
+- Federal funds rate → FEDFUNDS
+- 30-year mortgage rate → MORTGAGE30US
+- Core PCE inflation → PCEPILFE
+- US national debt → GFDEBTN
+- M2 money supply → M2SL
+
+If startYear or endYear is not mentioned, set both to null.
+If the query is unrecognizable, return: { "error": "unrecognized query" }`;
 
 async function parseQueryWithOpenAI(query) {
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
