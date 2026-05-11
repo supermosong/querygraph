@@ -1,7 +1,6 @@
 import React from 'react';
 import SearchBar from '../components/SearchBar';
 import GraphDisplay from '../components/GraphDisplay';
-import HelpPanel from '../components/HelpPanel';
 import useGraphData from '../hooks/useGraphData';
 
 const EXAMPLE_QUERIES = [
@@ -44,11 +43,7 @@ function Home() {
           ))}
         </div>
 
-        {/* Show help panel when query is not recognized, graph otherwise */}
-        {error
-          ? <HelpPanel onSelect={fetchGraph} />
-          : <GraphDisplay data={data} isLoading={isLoading} error={null} />
-        }
+        <GraphDisplay data={data} isLoading={isLoading} error={error} />
 
       </div>
     </main>
