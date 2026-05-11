@@ -19,7 +19,6 @@ API routing rules:
 - Stock, share price, ticker symbols (AAPL, TSLA) → ALPHAVANTAGE
 
 Common FRED series IDs (use these exactly):
-- Unemployment rate → UNRATE
 - CPI inflation → CPIAUCSL
 - US GDP → GDP
 - Federal funds rate → FEDFUNDS
@@ -27,6 +26,13 @@ Common FRED series IDs (use these exactly):
 - Core PCE inflation → PCEPILFE
 - US national debt → GFDEBTN
 - M2 money supply → M2SL
+
+Common BLS series IDs (use these exactly):
+- Unemployment rate → LNS14000000
+- Total nonfarm payroll → CES0000000001
+- Job openings → JTS000000000000000JOL
+- Average hourly earnings → CES0500000003
+- Labor force participation rate → LNS11300000
 
 If startYear or endYear is not mentioned, set both to null.
 If the query is unrecognizable, return: { "error": "unrecognized query" }`;

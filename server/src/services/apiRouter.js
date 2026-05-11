@@ -1,5 +1,6 @@
 const { parseQueryWithOpenAI } = require('./openaiParser');
 const { fetchFREDData } = require('./apis/fred');
+const { fetchBLSData } = require('./apis/bls');
 const { normalizeData } = require('./dataNormalizer');
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -21,7 +22,12 @@ async function routeQuery(rawQuery) {
     return normalizeData(raw, title, unit);
   }
 
-  throw new Error(`"${api}" data is not supported yet. Try asking about inflation, GDP, or interest rates.`);
+  if (api === 'BLS') {
+    const raw = await fetchBLSData(seriesId, startYear, endYear);
+    return normalizeData(raw, title, unit);
+  }
+
+  throw new Error(`"${api}" data is not supported yet. Try asking about unemployment, inflation, or GDP.`);
 }
 
 module.exports = { routeQuery };
