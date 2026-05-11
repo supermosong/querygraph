@@ -19,12 +19,12 @@ async function routeQuery(rawQuery) {
 
   if (api === 'FRED') {
     const raw = await fetchFREDData(seriesId, startYear, endYear);
-    return normalizeData(raw, title, unit);
+    return normalizeData(raw, title, unit, 'FRED');
   }
 
   if (api === 'BLS') {
     const raw = await fetchBLSData(seriesId, startYear, endYear);
-    return normalizeData(raw, title, unit);
+    return normalizeData(raw, title, unit, 'BLS');
   }
 
   throw new Error(`"${api}" data is not supported yet. Try asking about unemployment, inflation, or GDP.`);

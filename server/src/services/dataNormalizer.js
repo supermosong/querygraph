@@ -1,12 +1,18 @@
-function normalizeData(fredData, title, yLabel) {
+const SOURCE_INFO = {
+  FRED: { source: 'Federal Reserve Economic Data (FRED)', sourceUrl: 'https://fred.stlouisfed.org' },
+  BLS:  { source: 'Bureau of Labor Statistics (BLS)',     sourceUrl: 'https://www.bls.gov' },
+};
+
+function normalizeData(rawData, title, yLabel, api = 'FRED') {
+  const { source, sourceUrl } = SOURCE_INFO[api] ?? SOURCE_INFO.FRED;
   return {
     title,
     xLabel: 'Year',
     yLabel,
-    labels: fredData.labels,
-    values: fredData.values,
-    source: 'Federal Reserve Economic Data (FRED)',
-    sourceUrl: 'https://fred.stlouisfed.org',
+    labels: rawData.labels,
+    values: rawData.values,
+    source,
+    sourceUrl,
   };
 }
 
