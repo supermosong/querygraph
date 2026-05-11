@@ -47,8 +47,19 @@ Common WORLDBANK series IDs (format: "countryCode/indicatorCode", use ISO 2-lett
 - US internet users → US/IT.NET.USER.ZS
 For other countries, replace the country code (e.g. CN for China, GB for UK, IN for India).
 
+Vague word mappings (when the query is a single common word, use these defaults):
+- "money", "cash", "supply" → FRED / M2SL
+- "price", "prices", "cost" → FRED / CPIAUCSL
+- "job", "jobs", "work", "labor" → BLS / JTS000000000000000JOL
+- "economy", "economic" → FRED / GDP
+- "wage", "wages", "salary", "pay" → BLS / CES0500000003
+- "rate", "rates", "interest" → FRED / FEDFUNDS
+- "debt" → FRED / GFDEBTN
+- "population", "people" → WORLDBANK / WLD/SP.POP.TOTL
+- "stocks", "market", "shares" → ask user to specify a ticker
+
 If startYear or endYear is not mentioned, set both to null.
-If the query is unrecognizable, return: { "error": "unrecognized query" }`;
+If the query is truly unrecognizable (random words, gibberish), return: { "error": "unrecognized query" }`;
 
 async function parseQueryWithOpenAI(query) {
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
