@@ -16,6 +16,8 @@ app.use(cors());
 // Parse JSON request bodies
 app.use(express.json());
 
+app.get('/', (req, res) => res.json({ status: 'ok', endpoint: 'POST /api/graph' }));
+
 // API routes — all mounted under /api
 app.use('/api', graphRouter);
 

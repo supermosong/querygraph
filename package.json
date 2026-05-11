@@ -1,0 +1,25 @@
+{
+  "name": "querygraph",
+  "version": "1.0.0",
+  "description": "Type a plain-English question and get an instant interactive graph, powered by free public APIs.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/supermosong/querygraph.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/supermosong/querygraph/issues"
+  },
+  "homepage": "https://github.com/supermosong/querygraph#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

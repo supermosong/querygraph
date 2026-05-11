@@ -1,13 +1,7 @@
-// graph.js — defines the POST /api/graph endpoint
-
 const express = require('express');
 const router = express.Router();
-const { parseQuery } = require('../services/queryParser');
 const { routeQuery } = require('../services/apiRouter');
 
-// POST /api/graph
-// Body: { query: string }
-// Returns: normalized chart data object, or { error: string }
 router.post('/graph', async (req, res, next) => {
   const { query } = req.body;
 
@@ -16,11 +10,10 @@ router.post('/graph', async (req, res, next) => {
   }
 
   try {
-    const parsed = parseQuery(query.trim());
-    const data = await routeQuery(parsed);
+    const data = await routeQuery(query.trim());
     res.json(data);
   } catch (err) {
-    next(err); // Forward to errorHandler middleware
+    next(err);
   }
 });
 

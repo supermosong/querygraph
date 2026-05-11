@@ -24,7 +24,12 @@ function useGraphData() {
         body: JSON.stringify({ query }),
       });
 
-      const json = await response.json();
+      let json;
+      try {
+        json = await response.json();
+      } catch {
+        throw new Error('Could not reach the server. Make sure the backend is running on port 3001.');
+      }
 
       if (!response.ok) {
         throw new Error(json.error || 'Something went wrong. Please try a different query.');
