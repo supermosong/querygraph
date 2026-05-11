@@ -1,7 +1,5 @@
 jest.mock('openai', () => {
-  return {
-    default: jest.fn(),
-  };
+  return { default: jest.fn() };
 });
 
 const OpenAI = require('openai').default;
@@ -19,64 +17,42 @@ function mockOpenAIResponse(jsonPayload) {
   }));
 }
 
-beforeEach(() => {
-  jest.clearAllMocks();
-});
+beforeEach(() => jest.clearAllMocks());
 
 describe('parseQueryWithOpenAI', () => {
-  test('returns structured result for "unemployment rate 2020 2024"', async () => {
-    mockOpenAIResponse({
-      api: 'BLS',
-      seriesId: 'LNS14000000',
-      startYear: 2020,
-      endYear: 2024,
-      title: 'US Unemployment Rate',
-      unit: 'Unemployment Rate (%)',
-    });
-
-    const result = await parseQueryWithOpenAI('unemployment rate 2020 2024');
-    expect(result.api).toBe('BLS');
-    expect(result.seriesId).toBeTruthy();
-    expect(result.startYear).toBe(2020);
-    expect(result.endYear).toBe(2024);
-    expect(result.title).toBeTruthy();
-    expect(result.unit).toBeTruthy();
+  test('routes FRED query with searchTerm and years', async () => {
+    mockOpenAIResponse({ api: 'FRED', searchTerm: 'mortgage rates', ticker: null, countryCode: null, startYear: 2018, endYear: 2023 });
+    const result = await parseQueryWithOpenAI('mortgage rates 2018 2023');
+    expect(result.api).toBe('FRED');
+    expect(result.searchTerm).toBe('mortgage rates');
+    expect(result.startYear).toBe(2018);
+    expect(result.endYear).toBe(2023);
   });
 
-  test('returns null dates when no date range is mentioned', async () => {
-    mockOpenAIResponse({
-      api: 'FRED',
-      seriesId: 'CPIAUCSL',
-      startYear: null,
-      endYear: null,
-      title: 'US CPI Inflation',
-      unit: 'Index 1982-84=100',
-    });
-
-    const result = await parseQueryWithOpenAI('inflation');
-    expect(result.startYear).toBeNull();
-    expect(result.endYear).toBeNull();
+  test('routes WORLDBANK query with countryCode', async () => {
+    mockOpenAIResponse({ api: 'WORLDBANK', searchTerm: 'GDP', ticker: null, countryCode: 'CN', startYear: 2010, endYear: 2023 });
+    const result = await parseQueryWithOpenAI('China GDP 2010 2023');
+    expect(result.api).toBe('WORLDBANK');
+    expect(result.countryCode).toBe('CN');
   });
 
-  test('returns error for completely unrecognizable query', async () => {
-    mockOpenAIResponse({ error: 'unrecognized query' });
+  test('routes ALPHAVANTAGE with ticker', async () => {
+    mockOpenAIResponse({ api: 'ALPHAVANTAGE', searchTerm: 'AAPL', ticker: 'AAPL', countryCode: null, startYear: 2020, endYear: 2024 });
+    const result = await parseQueryWithOpenAI('Apple stock 2020 2024');
+    expect(result.api).toBe('ALPHAVANTAGE');
+    expect(result.ticker).toBe('AAPL');
+  });
 
+  test('returns NONE for unrecognizable query', async () => {
+    mockOpenAIResponse({ api: 'NONE', searchTerm: null, ticker: null, countryCode: null, startYear: null, endYear: null });
     const result = await parseQueryWithOpenAI('purple elephant dancing');
-    expect(result.error).toBeTruthy();
-    expect(result.seriesId).toBeUndefined();
+    expect(result.api).toBe('NONE');
   });
 
   test('throws if OpenAI returns malformed JSON', async () => {
     OpenAI.mockImplementation(() => ({
-      chat: {
-        completions: {
-          create: jest.fn().mockResolvedValue({
-            choices: [{ message: { content: 'not json at all' } }],
-          }),
-        },
-      },
+      chat: { completions: { create: jest.fn().mockResolvedValue({ choices: [{ message: { content: 'not json' } }] }) } },
     }));
-
-    await expect(parseQueryWithOpenAI('unemployment')).rejects.toThrow();
+    await expect(parseQueryWithOpenAI('test')).rejects.toThrow();
   });
 });

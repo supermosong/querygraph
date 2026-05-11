@@ -40,6 +40,22 @@ function GraphDisplay({ data, isLoading, error }) {
 
   if (!data) return null;
 
+  // Not-found fallback from Layer 3
+  if (data.status === 'not_found') {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <div className="text-center bg-amber-50 border border-amber-200 rounded-lg px-8 py-6 max-w-md">
+          <p className="font-semibold text-amber-800 mb-2">{data.message}</p>
+          <ul className="text-sm text-amber-700 text-left space-y-1">
+            {data.suggestions.map((s) => (
+              <li key={s}>{s}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
   // Convert { labels: [...], values: [...] } into [{ x, y }, ...] for Recharts
   const chartData = data.labels.map((label, i) => ({
     x: label,
