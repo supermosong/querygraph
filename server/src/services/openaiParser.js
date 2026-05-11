@@ -15,7 +15,7 @@ Output this exact format:
 API routing rules:
 - Inflation, CPI, GDP, interest rates, federal reserve → FRED
 - Jobs, unemployment, employment, workforce, labor → BLS
-- Global, country GDP, population, world data → WORLDBANK
+- Global, country GDP, population, world data, CO2, life expectancy → WORLDBANK
 - Stock, share price, ticker symbols (AAPL, TSLA) → ALPHAVANTAGE
 
 Common FRED series IDs (use these exactly):
@@ -33,6 +33,19 @@ Common BLS series IDs (use these exactly):
 - Job openings → JTS000000000000000JOL
 - Average hourly earnings → CES0500000003
 - Labor force participation rate → LNS11300000
+
+Common WORLDBANK series IDs (format: "countryCode/indicatorCode", use ISO 2-letter country code):
+- US GDP → US/NY.GDP.MKTP.CD
+- US GDP growth rate → US/NY.GDP.MKTP.KD.ZG
+- US GDP per capita → US/NY.GDP.PCAP.CD
+- World population → WLD/SP.POP.TOTL
+- US population → US/SP.POP.TOTL
+- US unemployment → US/SL.UEM.TOTL.ZS
+- Global CO2 emissions → WLD/EN.ATM.CO2E.KT
+- US life expectancy → US/SP.DYN.LE00.IN
+- US inflation (CPI) → US/FP.CPI.TOTL.ZG
+- US internet users → US/IT.NET.USER.ZS
+For other countries, replace the country code (e.g. CN for China, GB for UK, IN for India).
 
 If startYear or endYear is not mentioned, set both to null.
 If the query is unrecognizable, return: { "error": "unrecognized query" }`;
