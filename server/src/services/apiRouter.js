@@ -1,32 +1,18 @@
-// apiRouter.js — dispatches a parsed query to the correct API and returns normalized data
-
-const { fetchBLSData } = require('./apis/bls');
+const { parseQueryWithOpenAI } = require('./openaiParser');
 const { fetchFREDData } = require('./apis/fred');
-const { normalizeBLS, normalizeFRED } = require('./dataNormalizer');
+const { normalizeData } = require('./dataNormalizer');
 
-// Routes the parsed query to the correct data source and returns normalized chart data
-// Throws a human-readable error if topic is unknown or API call fails
-async function routeQuery(parsedQuery) {
-  const { topic, api, startYear, endYear } = parsedQuery;
+async function routeQuery(rawQuery) {
+  const parsed = await parseQueryWithOpenAI(rawQuery);
 
-  if (!topic) {
-    throw new Error(
-      'Query not recognized. Try topics like "unemployment rate", "inflation", "GDP", or "CPI".'
-    );
+  if (parsed.error) {
+    throw new Error(parsed.error);
   }
 
-  if (api === 'BLS') {
-    const raw = await fetchBLSData(startYear, endYear);
-    return normalizeBLS(raw, startYear, endYear);
-  }
+  const { series_id, title, yLabel, startYear, endYear } = parsed;
 
-  if (api === 'FRED') {
-    const raw = await fetchFREDData(startYear, endYear);
-    return normalizeFRED(raw, startYear, endYear);
-  }
-
-  // This branch only triggers if a new topic was added to queryParser without updating apiRouter
-  throw new Error(`Unsupported API target: "${api}". This is a bug — please report it.`);
+  const raw = await fetchFREDData(series_id, startYear, endYear);
+  return normalizeData(raw, title, yLabel);
 }
 
 module.exports = { routeQuery };
