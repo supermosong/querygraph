@@ -12,7 +12,7 @@ import {
 // Renders a line chart from normalized backend data
 // Shows a spinner while loading, an error message on failure, and nothing before first query
 // Props:
-//   data: { title, xLabel, yLabel, labels, values, source, sourceUrl } | null
+//   data: { title, unit, labels, values, source, sourceUrl } | null
 //   isLoading: boolean
 //   error: string | null
 function GraphDisplay({ data, isLoading, error }) {
@@ -41,16 +41,12 @@ function GraphDisplay({ data, isLoading, error }) {
   if (!data) return null;
 
   // Not-found fallback from Layer 3
-  if (data.status === 'not_found') {
+  if (data.notFound) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="text-center bg-amber-50 border border-amber-200 rounded-lg px-8 py-6 max-w-md">
-          <p className="font-semibold text-amber-800 mb-2">{data.message}</p>
-          <ul className="text-sm text-amber-700 text-left space-y-1">
-            {data.suggestions.map((s) => (
-              <li key={s}>{s}</li>
-            ))}
-          </ul>
+        <div className="text-center bg-yellow-50 border border-yellow-200 rounded-lg px-8 py-6 max-w-md">
+          <p className="font-semibold text-yellow-700 mb-1">No data found</p>
+          <p className="text-sm text-yellow-600">{data.reason}</p>
         </div>
       </div>
     );
@@ -71,14 +67,14 @@ function GraphDisplay({ data, isLoading, error }) {
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis
             dataKey="x"
-            label={{ value: data.xLabel, position: 'insideBottom', offset: -10 }}
+            label={{ value: 'Year', position: 'insideBottom', offset: -10 }}
           />
           <YAxis
-            label={{ value: data.yLabel, angle: -90, position: 'insideLeft', offset: 15 }}
+            label={{ value: data.unit, angle: -90, position: 'insideLeft', offset: 15 }}
             width={80}
           />
           <Tooltip
-            formatter={(value) => [`${value}`, data.yLabel]}
+            formatter={(value) => [`${value}`, data.unit]}
             labelFormatter={(label) => `Year: ${label}`}
           />
           <Line
