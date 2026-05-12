@@ -1,57 +1,47 @@
 const { OpenAI } = require('openai');
+const { getCached, setCached } = require('./cache');
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const SYSTEM_PROMPT = `
-You are a data visualization assistant with live web search access.
-When given a query, search the web for real statistical data and return JSON only.
-No explanation. No markdown. No extra text. Raw JSON only.
-
-Return this exact format:
-{
-  "title": "<clear chart title>",
-  "unit": "<y-axis label e.g. 'Percentage (%)', 'Billions USD', 'Thousands'>",
-  "labels": ["2019", "2020", "2021", "2022", "2023"],
-  "values": [3.7, 8.1, 5.4, 3.6, 3.4],
-  "source": "<name of data source e.g. 'Bureau of Labor Statistics'>",
-  "sourceUrl": "<direct URL to the data>"
-}
-
-Rules:
-- ALWAYS search the web before answering — never guess numbers
-- Prefer data from: bls.gov, fred.stlouisfed.org, data.worldbank.org, census.gov, imf.org
-- Use yearly data for multi-year queries, monthly for single-year queries
-- Sort data oldest to newest
-- labels and values must have the same length
-- If truly no numeric time-series data exists anywhere, return:
-  { "notFound": true, "reason": "<specific reason why>" }
-`.trim();
+const SYSTEM_PROMPT = `Return JSON only. No explanation.
+Search the web for real data. Use gov/official sources.
+Format: {"title":"","unit":"","labels":[],"values":[],"source":"","sourceUrl":""}
+If no data: {"notFound":true,"reason":""}
+Sort oldest→newest. labels and values same length.`;
 
 async function fetchGraphData(userQuery) {
+  const cached = getCached(userQuery);
+  if (cached) return cached;
+
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini-search-preview',
+    max_tokens: 250,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user',   content: userQuery },
     ],
     web_search_options: {
-      search_context_size: 'medium',
+      search_context_size: 'low',
     },
   });
 
   const raw = response.choices[0].message.content.trim();
 
-  // Model sometimes prepends search snippets before the JSON object — extract it directly
+  // Model sometimes prepends search snippets before the JSON — extract the object directly
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     return { notFound: true, reason: 'Could not parse response. Try rephrasing your query.' };
   }
 
+  let result;
   try {
-    return JSON.parse(jsonMatch[0]);
+    result = JSON.parse(jsonMatch[0]);
   } catch {
     return { notFound: true, reason: 'Could not parse response. Try rephrasing your query.' };
   }
+
+  setCached(userQuery, result);
+  return result;
 }
 
 module.exports = { fetchGraphData };
