@@ -40,10 +40,15 @@ async function fetchGraphData(userQuery) {
   });
 
   const raw = response.choices[0].message.content.trim();
-  const cleaned = raw.replace(/^```json|^```|```$/gm, '').trim();
+
+  // Model sometimes prepends search snippets before the JSON object — extract it directly
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return { notFound: true, reason: 'Could not parse response. Try rephrasing your query.' };
+  }
 
   try {
-    return JSON.parse(cleaned);
+    return JSON.parse(jsonMatch[0]);
   } catch {
     return { notFound: true, reason: 'Could not parse response. Try rephrasing your query.' };
   }
