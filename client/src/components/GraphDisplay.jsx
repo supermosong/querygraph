@@ -52,7 +52,9 @@ function NotFoundCard({ reason }) {
 
 // Converts parallel labels/values arrays into Recharts-compatible [{x, y}] format
 function toChartData(labels, values) {
-  return labels.map((label, i) => ({ x: label, y: values[i] }));
+  return labels
+    .map((label, i) => ({ x: label, y: values[i] }))
+    .filter((d) => d.y !== null && d.y !== undefined);
 }
 
 // Detects whether labels are months (contain letters) or years

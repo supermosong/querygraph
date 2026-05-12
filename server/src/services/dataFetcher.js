@@ -9,10 +9,12 @@ const TAVILY_URL = 'https://api.tavily.com/search';
 
 // Trusted domains for statistical data
 const INCLUDE_DOMAINS = [
+  'macrotrends.net',
+  'tradingeconomics.com',
+  'worldometers.info',
+  'data.worldbank.org',
   'fred.stlouisfed.org',
   'bls.gov',
-  'data.worldbank.org',
-  'tradingeconomics.com',
   'statista.com',
   'census.gov',
   'imf.org',
@@ -43,9 +45,9 @@ async function searchTavily(query) {
 
   // Join result snippets, cap at 2000 chars to control Groq token cost
   const combined = results
-    .map((r) => `${r.title}\n${r.content}`)
-    .join('\n\n')
-    .slice(0, 2000);
+    .map((r) => r.content)
+    .join(' ')
+    .slice(0, 1000);
 
   return combined;
 }
@@ -55,7 +57,7 @@ async function parseWithGroq(searchContent, userQuery) {
   const response = await groq.chat.completions.create({
     model:       'llama-3.3-70b-versatile',
     temperature: 0,
-    max_tokens:  400,
+    max_tokens:  250,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user',   content: `Query: ${userQuery}\n\nSearch results:\n${searchContent}` },
