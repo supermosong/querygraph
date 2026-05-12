@@ -18,7 +18,7 @@ async function fetchGraphData(userQuery) {
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini-search-preview',
-    max_tokens: 250,
+    max_tokens: 500,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user',   content: userQuery },
@@ -43,7 +43,7 @@ async function fetchGraphData(userQuery) {
     return { notFound: true, reason: 'Could not parse response. Try rephrasing your query.' };
   }
 
-  setCached(userQuery, result);
+  if (!result.notFound) setCached(userQuery, result);
   return result;
 }
 
