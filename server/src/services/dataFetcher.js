@@ -4,10 +4,13 @@ const { getCached, setCached } = require('./cache');
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const SYSTEM_PROMPT = `Return JSON only. No explanation.
-Search the web for real data. Use gov/official sources.
+Search the web for real time-series data. Use gov/official sources.
 Format: {"title":"","unit":"","labels":[],"values":[],"source":"","sourceUrl":""}
-If no data: {"notFound":true,"reason":""}
-Sort oldest→newest. labels and values same length.`;
+Rules:
+- labels = time periods only (years like "2020", or months like "Jan 2024"). NEVER column names.
+- values = one number per label. Same length as labels.
+- Sort oldest→newest.
+If no time-series data exists: {"notFound":true,"reason":""}`;
 
 async function fetchGraphData(userQuery) {
   const cached = getCached(userQuery);

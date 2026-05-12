@@ -67,15 +67,22 @@ function GraphDisplay({ data, isLoading, error }) {
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis
             dataKey="x"
-            label={{ value: 'Year', position: 'insideBottom', offset: -10 }}
+            label={{ value: data.labels.some(l => /[a-zA-Z]{3}/.test(l)) ? 'Month' : 'Year', position: 'insideBottom', offset: -10 }}
           />
           <YAxis
+            tickFormatter={(v) => {
+              if (Math.abs(v) >= 1e12) return `${(v / 1e12).toFixed(1)}T`;
+              if (Math.abs(v) >= 1e9)  return `${(v / 1e9).toFixed(1)}B`;
+              if (Math.abs(v) >= 1e6)  return `${(v / 1e6).toFixed(1)}M`;
+              if (Math.abs(v) >= 1e3)  return `${(v / 1e3).toFixed(1)}K`;
+              return v;
+            }}
             label={{ value: data.unit, angle: -90, position: 'insideLeft', offset: 15 }}
             width={80}
           />
           <Tooltip
-            formatter={(value) => [`${value}`, data.unit]}
-            labelFormatter={(label) => `Year: ${label}`}
+            formatter={(value) => [value.toLocaleString(), data.unit]}
+            labelFormatter={(label) => label}
           />
           <Line
             type="monotone"
