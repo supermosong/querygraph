@@ -4,6 +4,7 @@ import SearchBar from '../components/SearchBar';
 import GraphDisplay from '../components/GraphDisplay';
 import SuggestionChips from '../components/SuggestionChips';
 import ChartTypeSelector from '../components/ChartTypeSelector';
+import ExportButton from '../components/ExportButton';
 import useGraphData from '../hooks/useGraphData';
 
 function Home() {
@@ -32,9 +33,12 @@ function Home() {
         {/* Suggestion chips */}
         <SuggestionChips onSelect={fetchGraph} disabled={isLoading} />
 
-        {/* Chart type selector — only shown when data is loaded */}
+        {/* Chart controls — only shown when data is loaded */}
         {data && !data.notFound && (
-          <ChartTypeSelector chartType={chartType} onChange={setChartType} />
+          <div className="flex flex-wrap gap-3 items-center justify-center">
+            <ChartTypeSelector chartType={chartType} onChange={setChartType} />
+            <ExportButton title={data.title} />
+          </div>
         )}
 
         {/* Graph */}

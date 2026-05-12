@@ -10,8 +10,11 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Allow requests from the Vite dev server (http://localhost:5173)
-app.use(cors());
+// Allow Vite dev server in development; use FRONTEND_URL env var in production
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5174',
+  methods: ['GET', 'POST'],
+}));
 
 // Parse JSON request bodies
 app.use(express.json());
