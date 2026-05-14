@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { addToHistory } from './usePins';
 
 // Manages the full lifecycle of a graph data fetch
 // Returns: { data, isLoading, error, fetchGraph }
@@ -35,6 +36,7 @@ function useGraphData() {
         throw new Error(json.error || 'Something went wrong. Please try a different query.');
       }
 
+      addToHistory(query);
       setData(json);
     } catch (err) {
       setError(err.message);
