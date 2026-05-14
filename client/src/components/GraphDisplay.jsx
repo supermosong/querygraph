@@ -1,145 +1,132 @@
-// GraphDisplay.jsx — renders a line, bar, or pie chart from backend data
-import React from 'react';
-import {
-  LineChart, Line,
-  BarChart, Bar,
-  PieChart, Pie, Cell, Legend,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from 'recharts';
-import { formatTick, formatValue } from '../utils/formatData';
+// src/components/GraphDisplay.jsx
+import React, { useState, useEffect } from 'react';
+import { QG_PAL, QG_THEME } from '../theme';
+import { qgFormatValue } from './charts/chartUtils';
+import LineChart from './charts/LineChart';
+import BarChart from './charts/BarChart';
+import PieChart from './charts/PieChart';
+import ChartTypeSelector from './ChartTypeSelector';
+import { IconAlert, IconPin } from './icons/Icons';
 
-const COLORS = ['#2563eb','#16a34a','#dc2626','#d97706','#7c3aed','#0891b2','#be185d'];
-
-// Spinner shown while data is loading
-function Spinner() {
-  return (
-    <div className="flex items-center justify-center h-64 text-gray-400">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3" />
-        <p className="text-sm">Fetching data…</p>
-      </div>
-    </div>
-  );
-}
-
-// Error card shown when the API returns an error string
-function ErrorCard({ message }) {
-  const isRateLimit = message?.includes('Daily limit');
-  return (
-    <div className="flex items-center justify-center h-48">
-      <div className={`text-center border rounded-lg px-8 py-6 max-w-md
-        ${isRateLimit ? 'bg-orange-50 border-orange-200' : 'bg-red-50 border-red-200'}`}>
-        <p className={`font-semibold mb-1 ${isRateLimit ? 'text-orange-700' : 'text-red-700'}`}>
-          {isRateLimit ? 'Daily limit reached' : 'Could not load data'}
-        </p>
-        <p className={`text-sm ${isRateLimit ? 'text-orange-600' : 'text-red-600'}`}>{message}</p>
-      </div>
-    </div>
-  );
-}
-
-// Not-found card when the model finds no usable data
-function NotFoundCard({ reason }) {
-  return (
-    <div className="flex items-center justify-center h-48">
-      <div className="text-center bg-yellow-50 border border-yellow-200 rounded-lg px-8 py-6 max-w-md">
-        <p className="font-semibold text-yellow-700 mb-1">No data found</p>
-        <p className="text-sm text-yellow-600">{reason}</p>
-      </div>
-    </div>
-  );
-}
-
-// Converts parallel labels/values arrays into Recharts-compatible [{x, y}] format
-function toChartData(labels, values) {
-  return labels
-    .map((label, i) => ({ x: label, y: values[i] }))
-    .filter((d) => d.y !== null && d.y !== undefined);
-}
-
-// Detects whether labels are months (contain letters) or years
-function xAxisLabel(labels) {
-  return labels.some((l) => /[a-zA-Z]/.test(l)) ? 'Month' : 'Year';
-}
-
-// Renders a line chart
-function LineGraph({ chartData, data }) {
-  return (
-    <ResponsiveContainer width="100%" height={350}>
-      <LineChart data={chartData} margin={{ top: 5, right: 30, left: 10, bottom: 20 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis dataKey="x" label={{ value: xAxisLabel(data.labels), position: 'insideBottom', offset: -10 }} />
-        <YAxis tickFormatter={formatTick} label={{ value: data.unit, angle: -90, position: 'insideLeft', offset: 15 }} width={80} />
-        <Tooltip formatter={(v) => [formatValue(v, data.unit), data.unit]} labelFormatter={(l) => l} />
-        <Line type="monotone" dataKey="y" stroke="#2563eb" strokeWidth={2} dot={{ r: 4, fill: '#2563eb' }} activeDot={{ r: 6 }} />
-      </LineChart>
-    </ResponsiveContainer>
-  );
-}
-
-// Renders a bar chart
-function BarGraph({ chartData, data }) {
-  return (
-    <ResponsiveContainer width="100%" height={350}>
-      <BarChart data={chartData} margin={{ top: 5, right: 30, left: 10, bottom: 20 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis dataKey="x" label={{ value: xAxisLabel(data.labels), position: 'insideBottom', offset: -10 }} />
-        <YAxis tickFormatter={formatTick} label={{ value: data.unit, angle: -90, position: 'insideLeft', offset: 15 }} width={80} />
-        <Tooltip formatter={(v) => [formatValue(v, data.unit), data.unit]} labelFormatter={(l) => l} />
-        <Bar dataKey="y" fill="#2563eb" radius={[4, 4, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-// Renders a pie chart
-function PieGraph({ data }) {
-  const pieData = data.labels.map((label, i) => ({ name: label, value: data.values[i] }));
-  return (
-    <ResponsiveContainer width="100%" height={350}>
-      <PieChart>
-        <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={130} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}>
-          {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-        </Pie>
-        <Tooltip formatter={(v) => [formatValue(v, data.unit), data.unit]} />
-        <Legend />
-      </PieChart>
-    </ResponsiveContainer>
-  );
-}
-
-// Main component — shows spinner, error, not-found, or the appropriate chart type
-function GraphDisplay({ data, isLoading, error, chartType = 'line' }) {
-  if (isLoading) return <Spinner />;
-  if (error)     return <ErrorCard message={error} />;
-  if (!data)     return null;
-  if (data.notFound) return <NotFoundCard reason={data.reason} />;
-
-  const chartData = toChartData(data.labels, data.values);
-  const isFRED = data.source?.toLowerCase().includes('fred') || data.source?.toLowerCase().includes('federal reserve');
+export default function GraphDisplay({ data, isLoading, error, chartType, setChartType, light, onRetry, onPin, isPinned }) {
+  const p = QG_PAL[light ? 'light' : 'dark'];
+  if (!data && !isLoading && !error) return null;
 
   return (
-    <div className="w-full max-w-3xl">
-      <h2 className="text-xl font-semibold text-gray-800 mb-6 text-center">{data.title}</h2>
-
-      {chartType === 'pie'  && <PieGraph data={data} />}
-      {chartType === 'bar'  && <BarGraph chartData={chartData} data={data} />}
-      {chartType === 'line' && <LineGraph chartData={chartData} data={data} />}
-
-      <p className="text-center text-xs text-gray-400 mt-4">
-        Source:{' '}
-        <a href={data.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">
-          {data.source}
-        </a>
-      </p>
-
-      {isFRED && (
-        <p className="text-center text-xs text-gray-400 mt-1 italic">
-          This product uses the FRED® API but is not endorsed or certified by the Federal Reserve Bank of St. Louis.
-        </p>
+    <section className={`qg-rise w-full rounded-xl border ${p.border} ${p.surface} shadow-card overflow-hidden`}>
+      {isLoading && <LoadingState p={p} light={light} />}
+      {error && !isLoading && <ErrorState error={error} onRetry={onRetry} p={p} light={light} />}
+      {data && !isLoading && !error && (
+        <GraphSuccess data={data} chartType={chartType} setChartType={setChartType}
+                      light={light} onPin={onPin} isPinned={isPinned} />
       )}
+    </section>
+  );
+}
+
+function LoadingState({ p, light }) {
+  return (
+    <div className="grid place-items-center px-6 py-24 text-center">
+      <div className="qg-ring w-10 h-10 mx-auto mb-5" />
+      <p className={`text-sm font-medium ${light ? 'text-gray-800' : 'text-white'}`}>
+        Searching the web…
+      </p>
+      <p className={`text-xs ${p.dim} mt-1.5 max-w-sm`}>
+        Reading FRED, BLS, World Bank, and other sources for your query.
+      </p>
     </div>
   );
 }
 
-export default GraphDisplay;
+function ErrorState({ error, onRetry, p, light }) {
+  return (
+    <div className="grid place-items-center px-6 py-20 text-center">
+      <div className="w-12 h-12 rounded-full grid place-items-center bg-red-500/10 text-red-400 mb-4">
+        <IconAlert size={22} />
+      </div>
+      <p className={`text-base font-semibold ${light ? 'text-gray-900' : 'text-white'}`}>No data found</p>
+      <p className={`text-sm ${p.dim} mt-1 max-w-md`}>{error}</p>
+      <button onClick={onRetry}
+              className={`mt-5 text-xs font-medium px-3 py-1.5 rounded-lg
+                          border ${p.border} ${p.dim} hover:${p.text} transition-colors`}>
+        Clear and try again
+      </button>
+    </div>
+  );
+}
+
+function GraphSuccess({ data, chartType, setChartType, light, onPin, isPinned }) {
+  const p     = QG_PAL[light ? 'light' : 'dark'];
+  const theme = QG_THEME[light ? 'light' : 'dark'];
+  const [focus, setFocus] = useState(null);
+  useEffect(() => { setFocus(null); }, [data, chartType]);
+
+  const first = data.values[0];
+  const last  = data.values[data.values.length - 1];
+  const delta = last - first;
+  const pct   = first !== 0 ? (delta / Math.abs(first)) * 100 : 0;
+  const up    = delta >= 0;
+  const isFRED = /fred|federal reserve/i.test(data.source || '');
+
+  return (
+    <div className="p-6 sm:p-7">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className={`text-xl sm:text-2xl font-semibold leading-tight tracking-tight
+                          ${light ? 'text-gray-900' : 'text-white'}`}>
+            {data.title}
+          </h2>
+          {data.description && (
+            <p className={`text-sm ${p.dim} mt-1.5`}>{data.description}</p>
+          )}
+          <div className="flex items-baseline gap-3 mt-4">
+            <span className={`text-3xl sm:text-4xl font-semibold tracking-tight tnum
+                              ${light ? 'text-gray-900' : 'text-white'}`}>
+              {qgFormatValue(last, data.format, data.unit)}
+            </span>
+            <span className={`text-xs ${p.muted}`}>latest</span>
+            <span className={`tnum text-sm font-medium px-2 py-0.5 rounded
+                              ${up ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}`}>
+              {up ? '▲' : '▼'} {Math.abs(pct).toFixed(1)}%
+              <span className={`${p.muted} font-normal ml-1.5`}>vs. start</span>
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <ChartTypeSelector chartType={chartType} onChange={setChartType} light={light} />
+          {onPin && (
+            <button onClick={() => onPin(data)}
+                    aria-label={isPinned ? 'Unpin chart' : 'Pin chart'}
+                    className={`p-2 rounded-lg border transition-colors
+                                ${isPinned
+                                  ? 'border-indigo-500/50 text-indigo-400 bg-indigo-500/10'
+                                  : `${p.border} ${p.dim} hover:text-indigo-400 hover:border-indigo-500/40`}`}>
+              <IconPin size={15} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-6 w-full" style={{ height: 320 }}>
+        {chartType === 'line' && <LineChart data={data} theme={theme} />}
+        {chartType === 'bar'  && <BarChart  data={data} theme={theme} />}
+        {chartType === 'pie'  && <PieChart  data={data} theme={theme} />}
+      </div>
+
+      <div className={`mt-6 pt-4 border-t ${p.border} flex flex-col gap-1.5`}>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <a href={data.sourceUrl} target="_blank" rel="noopener noreferrer"
+             className={`text-sm ${p.dim} hover:${light ? 'text-gray-900' : 'text-white'} transition-colors`}>
+            Source: <span className="underline underline-offset-4 decoration-dotted">{data.source}</span>
+          </a>
+          <span className={`text-xs ${p.muted}`}>Updated just now</span>
+        </div>
+        {isFRED && (
+          <p className={`text-xs italic ${p.muted}`}>
+            This product uses the FRED® API but is not endorsed or certified by the Federal Reserve Bank of St. Louis.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
