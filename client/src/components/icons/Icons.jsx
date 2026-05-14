@@ -16,7 +16,7 @@ export const IconGraph = (p) => (
     <circle cx="7" cy="14" r="1.3" fill="currentColor" stroke="none" />
     <circle cx="11" cy="10" r="1.3" fill="currentColor" stroke="none" />
     <circle cx="14" cy="13" r="1.3" fill="currentColor" stroke="none" />
-    <circle cx="20" cy="6"  r="1.3" fill="currentColor" stroke="none" />
+    <circle cx="20" cy="6" r="1.3" fill="currentColor" stroke="none" />
   </S>
 );
 
