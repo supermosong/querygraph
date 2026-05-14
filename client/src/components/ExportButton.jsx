@@ -4,7 +4,7 @@ import React from 'react';
 // Finds the chart SVG in the DOM, converts it to a PNG canvas, and triggers download
 function ExportButton({ title }) {
   function handleExport() {
-    const svg = document.querySelector('.recharts-wrapper svg');
+    const svg = document.querySelector('svg');
     if (!svg) return;
 
     const svgData   = new XMLSerializer().serializeToString(svg);
