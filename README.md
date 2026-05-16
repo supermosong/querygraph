@@ -1,51 +1,161 @@
 # QueryGraph
 
-Type any plain-English question and instantly see real data as an interactive chart.
-Powered by Tavily web search and Groq (Llama 3.3 70B) — no hardcoded APIs, no series IDs.
+Type a plain-English question and get an instant interactive graph, powered by free public APIs.
 
-## How to run locally
+**Example queries:**
+- `US unemployment rate 2020-2024`
+- `inflation last 5 years`
+- `US inflation rate 2018-2023`
 
-1. **Get free API keys** (no credit card needed):
-   - Tavily: https://app.tavily.com
-   - Groq: https://console.groq.com
+## How It Works
 
-2. **Set up the backend:**
-   ```bash
-   cd server
-   cp .env.example .env
-   # Add your TAVILY_API_KEY and GROQ_API_KEY to .env
-   npm install
-   npm run dev
-   ```
+1. You type a query in the search bar
+2. The backend parses it (keyword matching) and picks the right data source
+3. Real data is fetched from BLS or FRED
+4. A line chart renders in the browser
 
-3. **Set up the frontend:**
-   ```bash
-   cd client
-   npm install
-   npm run dev
-   ```
+## Tech Stack
 
-4. Open http://localhost:5174
+| Layer | Tech |
+|---|---|
+| Frontend | React 18, Vite, Recharts, TailwindCSS |
+| Backend | Node.js, Express |
+| APIs | BLS (employment), FRED (economics) |
+| Tests | Jest (backend), Vitest (frontend) |
 
-## Environment variables
+## Prerequisites
 
-| Variable | Required | Description |
+- Node.js 18+
+- Free API keys (see below)
+
+## Setup
+
+**1. Clone and enter the project**
+
+```bash
+cd querygraph
+```
+
+**2. Backend**
+
+```bash
+cd server
+npm install
+cp .env.example .env
+# Add your API keys to .env
+```
+
+**3. Frontend**
+
+```bash
+cd ../client
+npm install
+```
+
+## API Keys
+
+Both are free and take under a minute to get.
+
+| Key | Required? | Get it at |
 |---|---|---|
-| `TAVILY_API_KEY` | Yes | Web search — get free at app.tavily.com |
-| `GROQ_API_KEY` | Yes | AI parsing — get free at console.groq.com |
-| `PORT` | No | Backend port (default: 3001) |
-| `FRONTEND_URL` | No | Allowed CORS origin in production |
+| `FRED_API_KEY` | Yes (for inflation/economics queries) | https://fred.stlouisfed.org/docs/api/api_key.html |
+| `BLS_API_KEY` | No (optional — raises rate limit from 500 to 2500 req/day) | https://data.bls.gov/registrationEngine/ |
 
-## Tech stack
+Add them to `server/.env`:
 
-- **Frontend:** React 18 + Vite + Recharts + TailwindCSS
-- **Backend:** Node.js + Express
-- **Search:** Tavily API
-- **AI:** Groq — llama-3.3-70b-versatile
+```
+FRED_API_KEY=your_key_here
+BLS_API_KEY=your_key_here
+PORT=3001
+```
 
-## Deploy
+## Running Locally
 
-- Backend → [Railway](https://railway.app) or [Render](https://render.com) (free tier)
-- Frontend → [Vercel](https://vercel.com) (free tier)
+Open two terminals:
 
-Set `FRONTEND_URL` on the backend to your Vercel domain after deploying.
+```bash
+# Terminal 1 — backend (http://localhost:3001)
+cd querygraph/server
+npm run dev
+
+# Terminal 2 — frontend (http://localhost:5173)
+cd querygraph/client
+npm run dev
+
+#Terminal main (http://localhost:5173/)
+cd querygraph
+npm run dev
+```
+
+Then open http://localhost:5173.
+
+## Running Tests
+
+```bash
+cd server
+npm test
+```
+
+19 unit tests covering query parsing and data normalization.
+
+## Supported Query Topics
+
+| Keywords | Data Source | Example |
+|---|---|---|
+| job, employment, unemployment, workforce, labor | BLS | `US unemployment rate 2020-2024` |
+| inflation, gdp, cpi, interest rate, federal reserve, recession | FRED | `inflation last 5 years` |
+
+**Date formats understood:**
+- Explicit range: `2020-2024`
+- Last N years: `last 3 years`
+- No date: defaults to last 5 years
+
+## Project Structure
+
+```
+querygraph/
+├── server/
+│   ├── src/
+│   │   ├── services/
+│   │   │   ├── queryParser.js      # Keyword → topic + date range
+│   │   │   ├── apiRouter.js        # Dispatch to correct API
+│   │   │   ├── dataNormalizer.js   # Normalize to { labels, values }
+│   │   │   └── apis/
+│   │   │       ├── bls.js          # Bureau of Labor Statistics
+│   │   │       └── fred.js         # Federal Reserve Economic Data
+│   │   ├── routes/graph.js         # POST /api/graph
+│   │   ├── middleware/
+│   │   │   └── errorHandler.js
+│   │   └── index.js
+│   └── tests/
+└── client/
+    └── src/
+        ├── components/
+        │   ├── Navbar.jsx
+        │   ├── SearchBar.jsx
+        │   └── GraphDisplay.jsx
+        ├── hooks/useGraphData.js
+        └── pages/Home.jsx
+```
+
+## API Endpoint
+
+```
+POST /api/graph
+Content-Type: application/json
+
+{ "query": "US unemployment rate 2021-2023" }
+```
+
+Response:
+```json
+{
+  "title": "US Unemployment Rate (2021–2023)",
+  "xLabel": "Year",
+  "yLabel": "Unemployment Rate (%)",
+  "labels": ["2021", "2022", "2023"],
+  "values": [5.4, 3.7, 3.6],
+  "source": "Bureau of Labor Statistics",
+  "sourceUrl": "https://www.bls.gov"
+}
+```

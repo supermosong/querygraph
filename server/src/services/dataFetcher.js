@@ -31,11 +31,12 @@ async function searchTavily(query) {
   const response = await axios.post(
     TAVILY_URL,
     {
-      api_key:        process.env.TAVILY_API_KEY,
+      api_key:             process.env.TAVILY_API_KEY,
       query,
-      search_depth:   'basic',
-      max_results:    3,
-      include_domains: INCLUDE_DOMAINS,
+      search_depth:        'advanced',
+      max_results:         5,
+      include_raw_content: true,
+      include_domains:     INCLUDE_DOMAINS,
     },
     { headers: { 'Content-Type': 'application/json' } }
   );
@@ -43,11 +44,11 @@ async function searchTavily(query) {
   const results = response.data.results || [];
   if (results.length === 0) return null;
 
-  // Join result snippets, cap at 2000 chars to control Groq token cost
+  // Join raw page content (falls back to snippet), cap to control Groq token cost
   const combined = results
-    .map((r) => r.content)
+    .map((r) => r.raw_content || r.content)
     .join(' ')
-    .slice(0, 1000);
+    .slice(0, 4000);
 
   return combined;
 }

@@ -35,6 +35,9 @@ function useGraphData() {
       if (!response.ok) {
         throw new Error(json.error || 'Something went wrong. Please try a different query.');
       }
+      if (json.notFound) {
+        throw new Error(json.reason || 'No data found for your query. Try rephrasing it.');
+      }
 
       addToHistory(query);
       setData(json);
