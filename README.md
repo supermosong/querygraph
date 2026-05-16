@@ -1,27 +1,28 @@
 # QueryGraph
 
-Type a plain-English question and get an instant interactive graph, powered by free public APIs.
+Type a plain-English question and get an instant interactive graph. No hardcoded data sources — every answer is pulled live from the web and structured by an LLM.
 
 **Example queries:**
 - `US unemployment rate 2020-2024`
 - `inflation last 5 years`
-- `US inflation rate 2018-2023`
+- `Tesla stock price 2023`
 
 ## How It Works
 
 1. You type a query in the search bar
-2. The backend parses it (keyword matching) and picks the right data source
-3. Real data is fetched from BLS or FRED
-4. A line chart renders in the browser
+2. The backend asks **Tavily** to search the web for relevant sources
+3. Raw page content is fed to **Groq (Llama 3.3 70B)**, which extracts structured `{ labels, values }` data
+4. The frontend renders the result as an interactive chart
 
 ## Tech Stack
 
 | Layer | Tech |
 |---|---|
-| Frontend | React 18, Vite, Recharts, TailwindCSS |
+| Frontend | React 18, Vite, TailwindCSS, custom SVG charts |
 | Backend | Node.js, Express |
-| APIs | BLS (employment), FRED (economics) |
-| Tests | Jest (backend), Vitest (frontend) |
+| Search | Tavily API |
+| AI | Groq — `llama-3.3-70b-versatile` |
+| Tests | Vitest (frontend) |
 
 ## Prerequisites
 
@@ -30,7 +31,7 @@ Type a plain-English question and get an instant interactive graph, powered by f
 
 ## Setup
 
-**1. Clone and enter the project**
+**1. Enter the project**
 
 ```bash
 cd querygraph
@@ -54,61 +55,52 @@ npm install
 
 ## API Keys
 
-Both are free and take under a minute to get.
+Both are free, no credit card required.
 
 | Key | Required? | Get it at |
 |---|---|---|
-| `FRED_API_KEY` | Yes (for inflation/economics queries) | https://fred.stlouisfed.org/docs/api/api_key.html |
-| `BLS_API_KEY` | No (optional — raises rate limit from 500 to 2500 req/day) | https://data.bls.gov/registrationEngine/ |
+| `TAVILY_API_KEY` | Yes | https://app.tavily.com |
+| `GROQ_API_KEY` | Yes | https://console.groq.com |
 
-Add them to `server/.env`:
+`server/.env`:
 
 ```
-FRED_API_KEY=your_key_here
-BLS_API_KEY=your_key_here
+TAVILY_API_KEY=your_tavily_key_here
+GROQ_API_KEY=your_groq_key_here
 PORT=3001
+# FRONTEND_URL=https://your-vercel-domain.vercel.app   # set in production for CORS
 ```
 
 ## Running Locally
 
-Open two terminals:
+From the project root, one command starts both servers (via `concurrently`):
 
 ```bash
-# Terminal 1 — backend (http://localhost:3001)
-cd querygraph/server
-npm run dev
-
-# Terminal 2 — frontend (http://localhost:5173)
-cd querygraph/client
-npm run dev
-
-#Terminal main (http://localhost:5173/)
-cd querygraph
+npm install
 npm run dev
 ```
 
-Then open http://localhost:5173.
+- Backend → http://localhost:3001
+- Frontend → http://localhost:5173
+
+Or run them separately:
+
+```bash
+# Terminal 1 — backend
+cd server && npm run dev
+
+# Terminal 2 — frontend
+cd client && npm run dev
+```
 
 ## Running Tests
 
 ```bash
-cd server
+cd client
 npm test
 ```
 
-19 unit tests covering query parsing and data normalization.
-
-## Supported Query Topics
-
-| Keywords | Data Source | Example |
-|---|---|---|
-| job, employment, unemployment, workforce, labor | BLS | `US unemployment rate 2020-2024` |
-| inflation, gdp, cpi, interest rate, federal reserve, recession | FRED | `inflation last 5 years` |
-
-**Date formats understood:**
-- Explicit range: `2020-2024`
-- Last N years: `last 3 years`
-- No date: defaults to last 5 years
+24 frontend tests covering chart utilities and the `usePins` hook. (Backend has no tests yet.)
 
 ## Project Structure
 
@@ -117,25 +109,25 @@ querygraph/
 ├── server/
 │   ├── src/
 │   │   ├── services/
-│   │   │   ├── queryParser.js      # Keyword → topic + date range
-│   │   │   ├── apiRouter.js        # Dispatch to correct API
-│   │   │   ├── dataNormalizer.js   # Normalize to { labels, values }
-│   │   │   └── apis/
-│   │   │       ├── bls.js          # Bureau of Labor Statistics
-│   │   │       └── fred.js         # Federal Reserve Economic Data
+│   │   │   ├── dataFetcher.js      # Tavily search → Groq → structured JSON
+│   │   │   └── cache.js            # In-memory query cache
 │   │   ├── routes/graph.js         # POST /api/graph
 │   │   ├── middleware/
-│   │   │   └── errorHandler.js
+│   │   │   ├── errorHandler.js
+│   │   │   └── rateLimit.js        # Per-user daily quotas by tier
 │   │   └── index.js
-│   └── tests/
+│   └── .env.example
 └── client/
     └── src/
-        ├── components/
-        │   ├── Navbar.jsx
-        │   ├── SearchBar.jsx
-        │   └── GraphDisplay.jsx
-        ├── hooks/useGraphData.js
-        └── pages/Home.jsx
+        ├── components/             # Navbar, SearchBar, GraphDisplay, charts/, etc.
+        ├── hooks/
+        │   ├── useGraphData.js     # Fetch + history tracking
+        │   └── usePins.js          # Dashboard pin storage
+        ├── pages/
+        │   ├── Home.jsx
+        │   ├── Dashboard.jsx
+        │   └── Pricing.jsx
+        └── __tests__/
 ```
 
 ## API Endpoint
@@ -144,18 +136,37 @@ querygraph/
 POST /api/graph
 Content-Type: application/json
 
-{ "query": "US unemployment rate 2021-2023" }
+{
+  "query":  "US unemployment rate 2021-2023",
+  "userId": "anonymous",           // optional, for rate limiting
+  "tier":   "free"                  // optional: free | pro
+}
 ```
 
-Response:
+**Success response:**
+
 ```json
 {
-  "title": "US Unemployment Rate (2021–2023)",
-  "xLabel": "Year",
-  "yLabel": "Unemployment Rate (%)",
-  "labels": ["2021", "2022", "2023"],
-  "values": [5.4, 3.7, 3.6],
-  "source": "Bureau of Labor Statistics",
+  "title":     "US Unemployment Rate (2021–2023)",
+  "unit":      "%",
+  "labels":    ["2021", "2022", "2023"],
+  "values":    [5.4, 3.7, 3.6],
+  "source":    "Bureau of Labor Statistics",
   "sourceUrl": "https://www.bls.gov"
 }
 ```
+
+**No-data response:**
+
+```json
+{ "notFound": true, "reason": "No results found for this query. Try a different topic." }
+```
+
+**Errors:** `400` (empty/oversized query), `429` (daily rate limit hit), `5xx` (upstream failure).
+
+## Deploy
+
+- Backend → [Railway](https://railway.app) or [Render](https://render.com) (free tier)
+- Frontend → [Vercel](https://vercel.com) (free tier)
+
+After deploying the frontend, set `FRONTEND_URL` on the backend to its domain so CORS allows it.
